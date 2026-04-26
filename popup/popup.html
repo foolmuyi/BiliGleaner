@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiliGleaner</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- 顶部栏 (Glass Header) -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-wrap">
+        <img class="logo" src="../icons/icon128.png" alt="BiliGleaner">
+      </div>
+      <h1 class="title">BiliGleaner</h1>
+    </div>
+    <div class="header-right">
+      <div class="user-badge" id="userInfo">
+        <img class="user-avatar" id="userAvatar" style="display:none;" alt="">
+        <span id="userName">加载中...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 标签页切换 (Pill Tabs) -->
+  <div class="tabs-container">
+    <nav class="tabs">
+      <button class="tab active" data-tab="updates">
+        视频动态 <span class="badge" id="updateBadge" style="display:none;">0</span>
+      </button>
+      <button class="tab" data-tab="tracking">追踪列表</button>
+      <button class="tab" data-tab="manage">控制中心</button>
+    </nav>
+  </div>
+
+  <!-- 状态指示器 (Activity Bar) -->
+  <div class="activity-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">系统就绪</span>
+    <div class="progress-track" id="progressBar" style="display:none;">
+      <div class="progress-thumb" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- 有更新面板 -->
+  <div class="tab-content active" id="tab-updates">
+    <div class="toolbar updates-toolbar">
+      <div class="toolbar-group">
+        <button class="btn btn-primary" id="btnCheckUpdates">
+          <span>🔄</span> 检查更新
+        </button>
+        <button class="btn btn-ghost" id="btnMarkAllRead">全部标为已读</button>
+      </div>
+      <div class="filter-group" id="updateFilterGroup" aria-label="视频动态筛选">
+        <button class="filter-chip active" type="button" data-update-filter="all">全部</button>
+        <button class="filter-chip" type="button" data-update-filter="unread">仅未读</button>
+      </div>
+    </div>
+    
+    <div class="card-list" id="updateList">
+      <!-- 列表将由此处渲染 -->
+      <div class="empty-state" id="emptyUpdates">
+        <div class="empty-icon">📺</div>
+        <h3 class="empty-title">暂无视频动态</h3>
+        <p class="empty-desc">点击“检查更新”或等待自动任务</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 追踪列表面板 -->
+  <div class="tab-content" id="tab-tracking">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="btnScan">
+        <span>🔍</span> 扫描历史
+      </button>
+      <span class="user-badge" id="trackCount">0 人</span>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" class="input-field" placeholder="搜索 UP 主昵称或 UID...">
+    </div>
+    
+    <div class="card-list" id="trackingList" style="margin-top: 12px;">
+      <div class="empty-state" id="emptyTracking">
+        <div class="empty-icon">🔍</div>
+        <h3 class="empty-title">追踪列表为空</h3>
+        <p class="empty-desc">点击“扫描历史”发现你看过的 UP 主</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 控制中心 (Manage Panel) -->
+  <div class="tab-content" id="tab-manage">
+    <!-- 手动追踪 -->
+    <div class="section compact">
+      <h3 class="section-title">手动追踪</h3>
+      <div class="toolbar" style="margin-bottom: 0;">
+        <input type="text" id="addMidInput" class="input-field" placeholder="输入 UID 或空间链接" style="min-width: 0;">
+        <button class="btn btn-primary" id="btnAddTracking" style="white-space: nowrap; flex-shrink: 0;">添加</button>
+      </div>
+    </div>
+
+    <!-- 黑名单 -->
+    <div class="section compact">
+      <h3 class="section-title">黑名单 <span class="user-badge" id="blacklistCount" style="font-size: 11px; font-weight: 400;">0 人</span></h3>
+      <div class="card-list blacklist-scroll" id="blacklistItems"></div>
+    </div>
+
+    <!-- 数据导入导出 -->
+    <div class="section compact">
+      <h3 class="section-title">数据备份</h3>
+      <p class="setting-desc" style="margin-bottom: 8px;">导入/导出的内容仅包括你手动添加的追踪 UP 主和黑名单，不包含自动扫描发现的 UP 主和视频动态（这些会在扫描时自动重建）。</p>
+      <div class="toolbar" style="margin-bottom: 0; gap: 8px;">
+        <button class="btn btn-ghost" id="btnExportData" style="flex: 1; justify-content: center;">📤 导出</button>
+        <button class="btn btn-ghost" id="btnImportData" style="flex: 1; justify-content: center;">📥 导入</button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+      </div>
+    </div>
+
+    <!-- 系统偏好 -->
+    <div class="section compact">
+      <h3 class="section-title">系统偏好</h3>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-name">历史扫描范围</span>
+          <span class="setting-desc">决定初始化时回溯的天数</span>
+        </div>
+        <select id="scanDaysSelect" class="input-field" style="width: auto; padding: 4px 8px;">
+          <option value="7" selected>最近 7 天</option>
+          <option value="30">最近 30 天</option>
+          <option value="60">最近 60 天</option>
+          <option value="90">最近 90 天</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-name">上次扫描</span>
+          <span id="lastFullScan" class="setting-desc">-</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-name">上次检查</span>
+          <span id="lastUpdateCheck" class="setting-desc">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 危险区域 -->
+    <div class="toolbar" style="padding: 0 4px; gap: 8px;">
+      <button class="btn btn-ghost" id="btnRefreshFollowings" style="flex: 1; justify-content: center;">刷新关注缓存</button>
+      <button class="btn btn-ghost" id="btnClearData" style="flex: 1; justify-content: center; color: #ef4444; border-color: #fee2e2;">清空数据</button>
+    </div>
+  </div>
+
+  <!-- Toast 容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
