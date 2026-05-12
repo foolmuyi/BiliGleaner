@@ -238,11 +238,9 @@ async function runFullScan(days = 7) {
 
     const savedCount = await processAndSave(upsMap);
     
-    // 按时间范围裁剪过期的追踪记录和视频动态
-    const pruned = await storage.pruneTrackedUpsByTimeRange(days);
+    // 扫描范围只约束视频动态保留时间，不裁剪追踪池。
     const prunedUpdates = await storage.pruneUpdatesByTimeRange(days);
     const cleanup = await cleanupTrackingPool();
-    if (pruned > 0) console.log(`[BiliGleaner] 裁剪了 ${pruned} 位超出时间范围的 UP 主`);
     if (prunedUpdates > 0) console.log(`[BiliGleaner] 清理了 ${prunedUpdates} 条过期视频动态`);
     if (cleanup.removedTracking > 0) {
       console.log(`[BiliGleaner] 清理了 ${cleanup.removedTracking} 位已关注的追踪 UP 主`);
@@ -299,10 +297,9 @@ async function runFullScan(days = 7) {
       pendingScanAction = null;
 
       if (action.type === 'prune') {
-        const pruned = await storage.pruneTrackedUpsByTimeRange(action.days);
         const prunedUpdates = await storage.pruneUpdatesByTimeRange(action.days);
         const cleanup = await cleanupTrackingPool();
-        if (pruned > 0 || prunedUpdates > 0 || cleanup.removedUpdates > 0) await updateBadge();
+        if (prunedUpdates > 0 || cleanup.removedUpdates > 0) await updateBadge();
         const trackingCount = await storage.getTrackingCount();
         broadcastMessage({
           type: 'SCAN_COMPLETE',
@@ -357,12 +354,10 @@ async function runIncrementalScan() {
 
     const savedCount = await processAndSave(upsMap);
 
-    // 按当前设置的时间范围裁剪过期的追踪记录和视频动态
+    // 扫描范围只约束视频动态保留时间，不裁剪追踪池。
     const scanDays = await storage.getSetting('scan_days', 7);
-    const pruned = await storage.pruneTrackedUpsByTimeRange(scanDays);
     const prunedUpdates = await storage.pruneUpdatesByTimeRange(scanDays);
     const cleanup = await cleanupTrackingPool();
-    if (pruned > 0) console.log(`[BiliGleaner] 裁剪了 ${pruned} 位超出时间范围的 UP 主`);
     if (prunedUpdates > 0) console.log(`[BiliGleaner] 清理了 ${prunedUpdates} 条过期视频动态`);
     if (cleanup.removedTracking > 0) {
       console.log(`[BiliGleaner] 清理了 ${cleanup.removedTracking} 位已关注的追踪 UP 主`);
@@ -418,10 +413,9 @@ async function runIncrementalScan() {
       pendingScanAction = null;
 
       if (action.type === 'prune') {
-        const pruned = await storage.pruneTrackedUpsByTimeRange(action.days);
         const prunedUpdates = await storage.pruneUpdatesByTimeRange(action.days);
         const cleanup = await cleanupTrackingPool();
-        if (pruned > 0 || prunedUpdates > 0 || cleanup.removedUpdates > 0) await updateBadge();
+        if (prunedUpdates > 0 || cleanup.removedUpdates > 0) await updateBadge();
         const trackingCount = await storage.getTrackingCount();
         broadcastMessage({
           type: 'SCAN_COMPLETE',
@@ -503,10 +497,9 @@ async function runUpdateCheck() {
       pendingScanAction = null;
 
       if (action.type === 'prune') {
-        const pruned = await storage.pruneTrackedUpsByTimeRange(action.days);
         const prunedUpdates = await storage.pruneUpdatesByTimeRange(action.days);
         const cleanup = await cleanupTrackingPool();
-        if (pruned > 0 || prunedUpdates > 0 || cleanup.removedUpdates > 0) await updateBadge();
+        if (prunedUpdates > 0 || cleanup.removedUpdates > 0) await updateBadge();
         const trackingCount = await storage.getTrackingCount();
         broadcastMessage({
           type: 'SCAN_COMPLETE',
@@ -718,12 +711,11 @@ async function handleMessage(message) {
           }
         } else {
           if (data.scanDays < oldDays) {
-            // 缩短范围：裁剪超出时间范围的追踪记录和视频动态
-            const pruned = await storage.pruneTrackedUpsByTimeRange(data.scanDays);
+            // 缩短范围：只裁剪超出时间范围的视频动态
             const prunedUpdates = await storage.pruneUpdatesByTimeRange(data.scanDays);
             const cleanup = await cleanupTrackingPool();
-            if (pruned > 0 || prunedUpdates > 0 || cleanup.removedUpdates > 0) {
-              console.log(`[BiliGleaner] 时间范围缩短，裁剪了 ${pruned} 位 UP 主，${prunedUpdates} 条动态`);
+            if (prunedUpdates > 0 || cleanup.removedUpdates > 0) {
+              console.log(`[BiliGleaner] 时间范围缩短，清理了 ${prunedUpdates} 条动态`);
               await updateBadge();
             }
           } else if (data.scanDays > oldDays) {
