@@ -861,6 +861,23 @@ body {
   color: var(--bili-blue);
 }
 
+.video-type-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.video-type-badge {
+  max-width: 100%;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #fff3df;
+  color: #855100;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .video-up-row {
   display: flex;
   align-items: center;

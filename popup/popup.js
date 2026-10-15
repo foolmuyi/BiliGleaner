@@ -317,7 +317,20 @@ function renderVideoCard(entry) {
   actions.appendChild(createActionButton('✕', '不再追踪', 'remove'));
 
   upRow.append(infoWrap, actions);
-  content.append(titleLink, upRow);
+  content.appendChild(titleLink);
+  if (Array.isArray(entry.video_badges)) {
+    const badges = document.createElement('div');
+    badges.className = 'video-type-badges';
+    for (const label of entry.video_badges) {
+      if (typeof label !== 'string' || !label.trim()) continue;
+      const badge = document.createElement('span');
+      badge.className = 'video-type-badge';
+      badge.textContent = label.slice(0, 40);
+      badges.appendChild(badge);
+    }
+    if (badges.childElementCount) content.appendChild(badges);
+  }
+  content.appendChild(upRow);
   card.append(thumbWrap, content);
 
   // 点击视频链接时自动标记已读
